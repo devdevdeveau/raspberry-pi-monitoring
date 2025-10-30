@@ -1,0 +1,105 @@
+{
+  "id": null,
+  "uid": "pihole-overview",
+  "title": "Pi-hole + Host Overview",
+  "timezone": "",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Queries Today",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "pihole_dns_queries_today", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Ads Blocked Today",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "pihole_ads_blocked_today", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Blocked Domains",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "pihole_domains_blocked", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Unique Clients",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "pihole_unique_clients", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Query Rate (1m)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "rate(pihole_dns_queries{type=\"forwarded\"}[1m])", "refId": "A" }],
+      "options": { "legend": { "displayMode": "table", "showLegend": true } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Ad Block Rate (1m)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "rate(pihole_ads_blocked{type=\"blocked\"}[1m])", "refId": "A" }],
+      "options": { "legend": { "displayMode": "table", "showLegend": true } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Load (1/5/15)",
+      "gridPos": { "x": 0, "y": 12, "w": 8, "h": 8 },
+      "targets": [
+        { "expr": "node_load1", "refId": "A", "legendFormat": "load1" },
+        { "expr": "node_load5", "refId": "B", "legendFormat": "load5" },
+        { "expr": "node_load15", "refId": "C", "legendFormat": "load15" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU Usage %",
+      "gridPos": { "x": 8, "y": 12, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "refId": "A",
+          "legendFormat": "CPU"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Used %",
+      "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 },
+      "targets": [
+        {
+          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+          "refId": "A",
+          "legendFormat": "Mem Used %"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Network I/O (rx/tx)",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (device) (rate(node_network_receive_bytes_total[5m]))", "refId": "A", "legendFormat": "{{device}} rx" },
+        { "expr": "sum by (device) (rate(node_network_transmit_bytes_total[5m]))", "refId": "B", "legendFormat": "{{device}} tx" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Disk Space Used %",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "100 - (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} * 100 / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"})",
+          "refId": "A",
+          "legendFormat": "{{mountpoint}}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# Docker artifacts
+*.log
+*.pid
+.env
+secrets/
+prom-data/
+grafana-data/
+# Node exporter / Prometheus runtime data
+prometheus/data/
+__pycache__/
+
