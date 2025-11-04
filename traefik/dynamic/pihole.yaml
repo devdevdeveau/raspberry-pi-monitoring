@@ -1,0 +1,15 @@
+http:
+  routers:
+    pihole:
+      rule: "Host(`dns.pihole.lab`)"
+      entryPoints:
+        - web
+      service: pihole
+      # tls: {}          # uncomment when you enable https
+
+  services:
+    pihole:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8080"
+        passHostHeader: true

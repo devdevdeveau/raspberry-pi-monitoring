@@ -1,6 +1,39 @@
 version: "3.9"
 
 services:
+  # traefik:
+  #   image: traefik:v3.1
+  #   ports:
+  #     - "80:80"
+  #   labels:
+  #     - "traefik.enable=true"
+  #   command:
+  #     - --providers.docker
+  #     - --entrypoints.web.address=:80
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+
+  traefik:
+    image: traefik:v3.1
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    labels:
+      - "traefik.enable=true"
+    command:
+      - --providers.docker
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik:/etc/traefik:ro
+    networks:
+      - mon
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -59,6 +92,30 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     networks: [mon]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.pihole.lab`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  # pihole:
+  #   image: pihole/pihole:latest
+  #   container_name: pihole-docker
+  #   restart: unless-stopped
+  #   environment:
+  #     - TZ=America/New_York
+  #     - WEBPASSWORD=${PIHOLE_PASSWORD}
+  #     - DNSMASQ_LISTENING=all
+  #     # If you want, set your LAN IP; helpful for logs & some UIs
+  #     # - FTLCONF_LOCAL_IPV4=<PI_LAN_IP>   # e.g., 192.168.1.10
+  #   ports:
+  #     # STAGING PORTS: do NOT collide with native DNS or Traefik
+  #     - "8081:80/tcp"     # temporary UI -> http://<PI_LAN_IP>:8081/admin/
+  #     - "5053:53/tcp"     # temporary DNS for testing
+  #     - "5053:53/udp"
+  #   volumes:
+  #     - ./etc-pihole:/etc/pihole
+  #     - ./etc-dnsmasq.d:/etc/dnsmasq.d
 
 networks:
   mon:
