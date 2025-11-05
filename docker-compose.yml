@@ -62,6 +62,11 @@ services:
       - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)"
     # no ports block needed when using host network
     # (Prometheus will scrape http://<PI_IP>:9100)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prom.rule=Host(`prometheus.pihole.lab`)"
+      - "traefik.http.routers.prom.entrypoints=web"
+      - "traefik.http.services.prom.loadbalancer.server.port=9090"
 
   pihole_exporter:
     image: ekofr/pihole-exporter:latest
