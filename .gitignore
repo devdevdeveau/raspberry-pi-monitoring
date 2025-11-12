@@ -8,4 +8,4 @@ grafana-data/
 # Node exporter / Prometheus runtime data
 prometheus/data/
 __pycache__/
-
+etc-pihole/

@@ -5,28 +5,26 @@ services:
     image: traefik:v3.1
     container_name: traefik
     restart: unless-stopped
+    # Bind only to localhost; cloudflared (on the same Docker network) reaches Traefik via service name "traefik"
     ports:
       - "127.0.0.1:443:443"
-      - "127.0.0.1:80:80"   # optional; only if you still need HTTP internally
-    # No public ports published; cloudflared will connect over the Docker network
+      - "127.0.0.1:80:80"    # optional; only if you still need HTTP internally
     labels:
       - "traefik.enable=true"
     command:
       - --providers.docker
       - --providers.file.directory=/etc/traefik/dynamic
       - --providers.file.watch=true
+      - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=monitoring_mon
-      # (Optional) dashboard; since no port is published, it's only reachable internally via tunnel if you add a router
       - --api.dashboard=true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik:/etc/traefik:ro
-      # Mount Cloudflare origin cert for TLS between cloudflared -> Traefik
+      # Cloudflare Origin cert for TLS between cloudflared ↔ Traefik
       - /etc/ssl/devdevdeveau/origin-cert.pem:/certs/origin-cert.pem:ro
       - /etc/ssl/devdevdeveau/origin-key.pem:/certs/origin-key.pem:ro
     networks: [mon]
@@ -43,6 +41,48 @@ services:
     labels:
       - "traefik.enable=false"
 
+  # --- DNS stack in Docker ---
+  unbound:
+    image: ghcr.io/klutchell/unbound:latest     # multi-arch; works on arm64/v8
+    platform: linux/arm64/v8
+    container_name: unbound
+    restart: unless-stopped
+    networks: [mon]
+    # No host ports: Pi-hole talks to "unbound:5335" inside the network
+    volumes:
+      # Optional custom config; include if you add ./unbound/unbound.conf
+      - ./unbound:/etc/unbound/custom.conf.d:ro
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    depends_on: [unbound]
+    networks: [mon]
+    # Expose DNS to your LAN. (Stop/disable native Pi-hole/Unbound first so :53 is free.)
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    environment:
+      - TZ=America/New_York
+      - FTLCONF_webserver_api_password=${PIHOLE_PASSWORD}
+      - DNSMASQ_LIFTLCONF_dns_listeningModeSTENING=all
+      - FTLCONF_LOCAL_IPV4=0.0.0.0
+      # Tell Pi-hole to use Unbound in Docker
+      - FTLCONF_dns_upstreams=unbound#5335
+      # If you want a fallback:
+      # - PIHOLE_DNS_1=1.1.1.1
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.rule=Host(`dns.devdevdeveau.net`)"
+      - "traefik.http.routers.pihole.entrypoints=websecure"
+      - "traefik.http.routers.pihole.tls=true"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+
+  # --- Monitoring ---
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -70,29 +110,11 @@ services:
     container_name: node_exporter
     restart: unless-stopped
     pid: host
-    network_mode: host   # exposes 9100 on the Pi; Prometheus scrapes http://<PI_IP>:9100
+    network_mode: host   # Prom scrapes http://<PI_IP>:9100
     command:
       - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)"
     labels:
       - "traefik.enable=false"
-
-  # pihole_exporter:
-  #   image: ekofr/pihole-exporter:latest
-  #   container_name: pihole_exporter
-  #   restart: unless-stopped
-  #   environment:
-  #     - PIHOLE_HOSTNAME=${PIHOLE_HOSTNAME}
-  #     - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
-  #     - PORT=9617
-  #     # Optional if your Pi-hole UI is https:
-  #     # - PIHOLE_PROTOCOL=https
-  #   networks: [mon]
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.pihole_exporter.rule=Host(`pihole-exporter.devdevdeveau.net`)"
-  #     - "traefik.http.routers.pihole_exporter.entrypoints=websecure"
-  #     - "traefik.http.routers.pihole_exporter.tls=true"
-  #     - "traefik.http.services.pihole_exporter.loadbalancer.server.port=9617"
 
   grafana:
     image: grafana/grafana:latest
@@ -114,7 +136,7 @@ services:
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
 networks:
-  mon:
+  mon: {}
 
 volumes:
   prom-data:
