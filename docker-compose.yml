@@ -1,24 +1,14 @@
 version: "3.9"
 
 services:
-  # traefik:
-  #   image: traefik:v3.1
-  #   ports:
-  #     - "80:80"
-  #   labels:
-  #     - "traefik.enable=true"
-  #   command:
-  #     - --providers.docker
-  #     - --entrypoints.web.address=:80
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-
   traefik:
     image: traefik:v3.1
     container_name: traefik
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "127.0.0.1:443:443"
+      - "127.0.0.1:80:80"   # optional; only if you still need HTTP internally
+    # No public ports published; cloudflared will connect over the Docker network
     labels:
       - "traefik.enable=true"
     command:
@@ -26,20 +16,37 @@ services:
       - --providers.file.directory=/etc/traefik/dynamic
       - --providers.file.watch=true
       - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=monitoring_mon
+      # (Optional) dashboard; since no port is published, it's only reachable internally via tunnel if you add a router
+      - --api.dashboard=true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik:/etc/traefik:ro
-    networks:
-      - mon
+      # Mount Cloudflare origin cert for TLS between cloudflared -> Traefik
+      - /etc/ssl/devdevdeveau/origin-cert.pem:/certs/origin-cert.pem:ro
+      - /etc/ssl/devdevdeveau/origin-key.pem:/certs/origin-key.pem:ro
+    networks: [mon]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    volumes:
+      # Contains config.yml and the <TUNNEL-UUID>.json creds file
+      - ./cloudflared:/etc/cloudflared:ro
+    networks: [mon]
+    labels:
+      - "traefik.enable=false"
 
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
-    ports:
-      - "9090:9090"
     volumes:
       - ./prometheus:/etc/prometheus:ro
       - prom-data:/prometheus
@@ -51,44 +58,46 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks: [mon]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prom.rule=Host(`prometheus.devdevdeveau.net`)"
+      - "traefik.http.routers.prom.entrypoints=websecure"
+      - "traefik.http.routers.prom.tls=true"
+      - "traefik.http.services.prom.loadbalancer.server.port=9090"
 
   node_exporter:
     image: prom/node-exporter:latest
     container_name: node_exporter
     restart: unless-stopped
     pid: host
-    network_mode: host   # easiest way to expose 9100 on the Pi
+    network_mode: host   # exposes 9100 on the Pi; Prometheus scrapes http://<PI_IP>:9100
     command:
       - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)"
-    # no ports block needed when using host network
-    # (Prometheus will scrape http://<PI_IP>:9100)
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prom.rule=Host(`prometheus.pihole.lab`)"
-      - "traefik.http.routers.prom.entrypoints=web"
-      - "traefik.http.services.prom.loadbalancer.server.port=9090"
+      - "traefik.enable=false"
 
-  pihole_exporter:
-    image: ekofr/pihole-exporter:latest
-    container_name: pihole_exporter
-    restart: unless-stopped
-    environment:
-      # CHANGE THESE:
-      - PIHOLE_HOSTNAME=${PIHOLE_HOSTNAME}
-      - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
-      - PORT=9617
-      # If your Pi-hole UI is https (custom cert), also set:
-      # - PIHOLE_PROTOCOL=https
-    ports:
-      - "9617:9617"
-    networks: [mon]
+  # pihole_exporter:
+  #   image: ekofr/pihole-exporter:latest
+  #   container_name: pihole_exporter
+  #   restart: unless-stopped
+  #   environment:
+  #     - PIHOLE_HOSTNAME=${PIHOLE_HOSTNAME}
+  #     - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+  #     - PORT=9617
+  #     # Optional if your Pi-hole UI is https:
+  #     # - PIHOLE_PROTOCOL=https
+  #   networks: [mon]
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.pihole_exporter.rule=Host(`pihole-exporter.devdevdeveau.net`)"
+  #     - "traefik.http.routers.pihole_exporter.entrypoints=websecure"
+  #     - "traefik.http.routers.pihole_exporter.tls=true"
+  #     - "traefik.http.services.pihole_exporter.loadbalancer.server.port=9617"
 
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
@@ -99,28 +108,10 @@ services:
     networks: [mon]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.pihole.lab`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.devdevdeveau.net`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-  # pihole:
-  #   image: pihole/pihole:latest
-  #   container_name: pihole-docker
-  #   restart: unless-stopped
-  #   environment:
-  #     - TZ=America/New_York
-  #     - WEBPASSWORD=${PIHOLE_PASSWORD}
-  #     - DNSMASQ_LISTENING=all
-  #     # If you want, set your LAN IP; helpful for logs & some UIs
-  #     # - FTLCONF_LOCAL_IPV4=<PI_LAN_IP>   # e.g., 192.168.1.10
-  #   ports:
-  #     # STAGING PORTS: do NOT collide with native DNS or Traefik
-  #     - "8081:80/tcp"     # temporary UI -> http://<PI_LAN_IP>:8081/admin/
-  #     - "5053:53/tcp"     # temporary DNS for testing
-  #     - "5053:53/udp"
-  #   volumes:
-  #     - ./etc-pihole:/etc/pihole
-  #     - ./etc-dnsmasq.d:/etc/dnsmasq.d
 
 networks:
   mon:

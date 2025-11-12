@@ -1,0 +1,15 @@
+tunnel: 696c4908-29ff-41ae-bb3c-d7c9117187dd
+credentials-file: /etc/cloudflared/696c4908-29ff-41ae-bb3c-d7c9117187dd.json
+
+ingress:
+  # - hostname: pihole.devdevdeveau.net
+  #   service: https://127.0.0.1:443        # <- cloudflared -> Traefik via TLS (Full Strict)
+  - hostname: ha.devdevdeveau.net
+    service: https://127.0.0.1:443
+  - hostname: dns.devdevdeveau.net
+    service: https://127.0.0.1:443
+  - hostname: grafana.devdevdeveau.net
+    service: https://127.0.0.1:443
+  - hostname: prometheus.devdevdeveau.net
+    service: https://127.0.0.1:443
+  - service: http_status:404
