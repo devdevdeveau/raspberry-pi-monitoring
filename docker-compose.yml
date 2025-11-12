@@ -66,7 +66,8 @@ services:
     environment:
       - TZ=America/New_York
       - FTLCONF_webserver_api_password=${PIHOLE_PASSWORD}
-      - DNSMASQ_LIFTLCONF_dns_listeningModeSTENING=all
+      - FTLCONF_dns_listeningMode=all
+      # - DNSMASQ_LIFTLCONF_dns_listeningModeSTENING=all
       - FTLCONF_LOCAL_IPV4=0.0.0.0
       # Tell Pi-hole to use Unbound in Docker
       - FTLCONF_dns_upstreams=unbound#5335
