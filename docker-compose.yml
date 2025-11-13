@@ -52,6 +52,8 @@ services:
     volumes:
       # Optional custom config; include if you add ./unbound/unbound.conf
       - ./unbound:/etc/unbound/custom.conf.d:ro
+    labels:
+      - "traefik.enable=false"
 
   pihole:
     image: pihole/pihole:latest
