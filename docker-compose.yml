@@ -25,8 +25,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik:/etc/traefik:ro
       # Cloudflare Origin cert for TLS between cloudflared ↔ Traefik
-      - /etc/ssl/devdevdeveau/origin-cert.pem:/certs/origin-cert.pem:ro
-      - /etc/ssl/devdevdeveau/origin-key.pem:/certs/origin-key.pem:ro
+      - /etc/ssl/${CLOUDFLARED_CERTS_DOMAIN}/origin-cert.pem:/certs/origin-cert.pem:ro
+      - /etc/ssl/${CLOUDFLARED_CERTS_DOMAIN}/origin-key.pem:/certs/origin-key.pem:ro
     networks: [mon]
 
   cloudflared:
@@ -69,18 +69,14 @@ services:
       - TZ=America/New_York
       - FTLCONF_webserver_api_password=${PIHOLE_PASSWORD}
       - FTLCONF_dns_listeningMode=all
-      # - DNSMASQ_LIFTLCONF_dns_listeningModeSTENING=all
       - FTLCONF_LOCAL_IPV4=0.0.0.0
-      # Tell Pi-hole to use Unbound in Docker
       - FTLCONF_dns_upstreams=unbound#5335
-      # If you want a fallback:
-      # - PIHOLE_DNS_1=1.1.1.1
     volumes:
       - ./etc-pihole:/etc/pihole
       - ./etc-dnsmasq.d:/etc/dnsmasq.d
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pihole.rule=Host(`dns.devdevdeveau.net`)"
+      - "traefik.http.routers.pihole.rule=Host(`${CLOUDFLARED_DNS}`)"
       - "traefik.http.routers.pihole.entrypoints=websecure"
       - "traefik.http.routers.pihole.tls=true"
       - "traefik.http.services.pihole.loadbalancer.server.port=80"
@@ -102,18 +98,14 @@ services:
       - "host.docker.internal:host-gateway"
     networks: [mon]
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prom.rule=Host(`prometheus.devdevdeveau.net`)"
-      - "traefik.http.routers.prom.entrypoints=websecure"
-      - "traefik.http.routers.prom.tls=true"
-      - "traefik.http.services.prom.loadbalancer.server.port=9090"
+      - "traefik.enable=false"
 
   node_exporter:
     image: prom/node-exporter:latest
     container_name: node_exporter
     restart: unless-stopped
     pid: host
-    network_mode: host   # Prom scrapes http://<PI_IP>:9100
+    network_mode: host   # Prom scrapes http://<PI_IP_ADDRESS>:9100
     command:
       - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)"
     labels:
@@ -124,12 +116,9 @@ services:
     container_name: pihole_exporter
     restart: unless-stopped
     environment:
-      # CHANGE THESE:
-      - PIHOLE_HOSTNAME=${PIHOLE_HOSTNAME}
       - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
       - PIHOLE_HOSTNAME=pihole
       - PORT=9617
-      # If your Pi-hole UI is https (custom cert), also set:
       # - PIHOLE_PROTOCOL=https
     ports:
       - "9617:9617"
@@ -149,7 +138,7 @@ services:
     networks: [mon]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.devdevdeveau.net`)"
+      - "traefik.http.routers.grafana.rule=Host(`${CLOUDFLARED_GRAFANA}`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
