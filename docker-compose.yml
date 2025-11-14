@@ -119,6 +119,22 @@ services:
     labels:
       - "traefik.enable=false"
 
+  pihole_exporter:
+    image: ekofr/pihole-exporter:latest
+    container_name: pihole_exporter
+    restart: unless-stopped
+    environment:
+      # CHANGE THESE:
+      - PIHOLE_HOSTNAME=${PIHOLE_HOSTNAME}
+      - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+      - PIHOLE_HOSTNAME=pihole
+      - PORT=9617
+      # If your Pi-hole UI is https (custom cert), also set:
+      # - PIHOLE_PROTOCOL=https
+    ports:
+      - "9617:9617"
+    networks: [mon]
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana

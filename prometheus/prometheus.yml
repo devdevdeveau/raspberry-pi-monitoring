@@ -12,13 +12,13 @@ scrape_configs:
   - job_name: node
     static_configs:
       # Replace with your Pi's LAN IP if not 127.0.0.1
-      - targets: ["192.168.4.117:9100"]
+      - targets: ["192.168.4.121:9100"]
 
-  # # Pi-hole exporter
-  # - job_name: pihole
-  #   metrics_path: /metrics
-  #   static_configs:
-  #     - targets: ["pihole_exporter:9617"]
+  # Pi-hole exporter
+  - job_name: pihole
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["pihole_exporter:9617"]
 
   - job_name: 'docker_engine'
     metrics_path: /metrics
