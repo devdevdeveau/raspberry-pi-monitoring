@@ -1,0 +1,13 @@
+# tls:
+#   certificates:
+#     - certFile: /certs/origin-cert.pem
+#       keyFile: /certs/origin-key.pem
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/origin-cert.pem
+        keyFile: /certs/origin-key.pem
+  certificates:
+    - certFile: /certs/origin-cert.pem
+      keyFile: /certs/origin-key.pem
