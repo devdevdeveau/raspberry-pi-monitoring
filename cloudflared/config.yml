@@ -1,45 +1,9 @@
 tunnel: 696c4908-29ff-41ae-bb3c-d7c9117187dd
 credentials-file: /etc/cloudflared/696c4908-29ff-41ae-bb3c-d7c9117187dd.json
 
-# ingress:
-#   - hostname: dns.devdevdeveau.net
-#     service: https://traefik:443
-#   - hostname: grafana.devdevdeveau.net
-#     service: https://traefik:443
-#   - hostname: prometheus.devdevdeveau.net
-#     service: https://traefik:443
-#   - service: http_status:404
 ingress:
   - hostname: grafana.devdevdeveau.net
-    service: http://grafana:3000
+    service: http://traefik:80
   - hostname: dns.devdevdeveau.net
-    service: http://pihole
+    service: http://traefik:80
   - service: http_status:404
-# ingress:
-#   - hostname: dns.devdevdeveau.net
-#     service: http://traefik:80
-#     originRequest:
-#       httpHostHeader: dns.devdevdeveau.net
-#   - hostname: grafana.devdevdeveau.net
-#     service: http://traefik:80
-#     originRequest:
-#       httpHostHeader: grafana.devdevdeveau.net
-#   - hostname: prometheus.devdevdeveau.net
-#     service: http://traefik:80
-#     originRequest:
-#       httpHostHeader: prometheus.devdevdeveau.net
-#   - service: http_status:404
-# ingress:
-#   - hostname: grafana.devdevdeveau.net
-#     service: http://traefik:80
-#     originRequest:
-#       httpHostHeader: grafana.devdevdeveau.net
-#   - hostname: prometheus.devdevdeveau.net
-#     service: http://traefik:80
-#     originRequest:
-#       httpHostHeader: prometheus.devdevdeveau.net
-#   - hostname: dns.devdevdeveau.net
-#     service: http://traefik:80
-#     originRequest:
-#       httpHostHeader: dns.devdevdeveau.net
-#   - service: http_status:404
