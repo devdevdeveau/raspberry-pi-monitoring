@@ -7,8 +7,7 @@ services:
     restart: unless-stopped
     # Bind only to localhost; cloudflared (on the same Docker network) reaches Traefik via service name "traefik"
     ports:
-      - "127.0.0.1:443:443"
-      - "127.0.0.1:80:80"    # optional; only if you still need HTTP internally
+      - "127.0.0.1:80:80"
     labels:
       - "traefik.enable=true"
     command:
@@ -17,16 +16,12 @@ services:
       - --providers.file.watch=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
       - --api.dashboard=true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik:/etc/traefik:ro
-      # Cloudflare Origin cert for TLS between cloudflared ↔ Traefik
-      - /etc/ssl/${CLOUDFLARED_CERTS_DOMAIN}/origin-cert.pem:/certs/origin-cert.pem:ro
-      - /etc/ssl/${CLOUDFLARED_CERTS_DOMAIN}/origin-key.pem:/certs/origin-key.pem:ro
     networks: [mon]
 
   cloudflared:
@@ -35,7 +30,6 @@ services:
     restart: unless-stopped
     command: tunnel run
     volumes:
-      # Contains config.yml and the <TUNNEL-UUID>.json creds file
       - ./cloudflared:/etc/cloudflared:ro
     networks: [mon]
     labels:
@@ -48,9 +42,7 @@ services:
     container_name: unbound
     restart: unless-stopped
     networks: [mon]
-    # No host ports: Pi-hole talks to "unbound:5335" inside the network
     volumes:
-      # Optional custom config; include if you add ./unbound/unbound.conf
       - ./unbound:/etc/unbound/custom.conf.d:ro
     labels:
       - "traefik.enable=false"
@@ -61,7 +53,6 @@ services:
     restart: unless-stopped
     depends_on: [unbound]
     networks: [mon]
-    # Expose DNS to your LAN. (Stop/disable native Pi-hole/Unbound first so :53 is free.)
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -77,11 +68,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.rule=Host(`${CLOUDFLARED_DNS}`)"
-      - "traefik.http.routers.pihole.entrypoints=websecure"
-      - "traefik.http.routers.pihole.tls=true"
       - "traefik.http.services.pihole.loadbalancer.server.port=80"
 
-  # --- Monitoring ---
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -119,7 +107,6 @@ services:
       - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
       - PIHOLE_HOSTNAME=pihole
       - PORT=9617
-      # - PIHOLE_PROTOCOL=https
     ports:
       - "9617:9617"
     networks: [mon]
