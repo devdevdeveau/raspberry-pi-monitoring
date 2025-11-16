@@ -9,3 +9,4 @@ grafana-data/
 prometheus/data/
 __pycache__/
 etc-pihole/
+etc-dnsmasq.d/
