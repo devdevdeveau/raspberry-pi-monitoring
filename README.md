@@ -2,7 +2,7 @@
 
 ## What You Need to Know
 
-**Why this stack matters:**\
+**Why this stack matters:**
 You get secure remote access, private DNS, ad‑blocking, observability,
 and a production‑grade reverse‑proxy---all running locally on a Pi or
 Linux server.
@@ -30,12 +30,12 @@ This Docker stack provides a private, secure, and observable home‑lab
 environment featuring:
 
 -   **Pi‑hole** --- DNS sinkholing + ad‑blocking
--   **Unbound** --- Private recursive DNS resolver\
--   **Traefik** --- Reverse proxy\
+-   **Unbound** --- Private recursive DNS resolver
+-   **Traefik** --- Reverse proxy
 -   **Cloudflared** --- Zero‑trust secure remote access, ssl offloading (no open
     ports!)
--   **Prometheus** --- Metrics collection\
--   **Grafana** --- Dashboards for your entire network\
+-   **Prometheus** --- Metrics collection
+-   **Grafana** --- Dashboards for your entire network
 -   **Exporters** --- Pi-hole stats + system metrics
 
 Everything lives inside the Docker network `mon`, except Node Exporter
@@ -47,7 +47,7 @@ which runs on the host.
 
 -   Linux host or Raspberry Pi (arm64 recommended)
 -   Docker & Docker Compose v2+
--   Cloudflare account + domain\
+-   Cloudflare account + domain
 -   Cloudflare tunnel created (JSON creds + cert.pem)
 -   Cloudflare Origin Certificates stored on host:
     -   `/etc/ssl/<domain>/origin-cert.pem`
