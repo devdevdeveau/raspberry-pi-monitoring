@@ -29,11 +29,11 @@ cloud‑tunneled infrastructure running in about 20 minutes.
 This Docker stack provides a private, secure, and observable home‑lab
 environment featuring:
 
--   **Pi‑hole** --- DNS sinkholing + ad‑blocking\
+-   **Pi‑hole** --- DNS sinkholing + ad‑blocking
 -   **Unbound** --- Private recursive DNS resolver\
--   **Traefik** --- Reverse proxy + TLS termination\
--   **Cloudflared** --- Zero‑trust secure remote access (no open
-    ports!)\
+-   **Traefik** --- Reverse proxy\
+-   **Cloudflared** --- Zero‑trust secure remote access, ssl offloading (no open
+    ports!)
 -   **Prometheus** --- Metrics collection\
 -   **Grafana** --- Dashboards for your entire network\
 -   **Exporters** --- Pi-hole stats + system metrics
@@ -134,9 +134,9 @@ credentials-file: /etc/cloudflared/<TUNNEL-UUID>.json
 
 ingress:
   - hostname: ${CLOUDFLARED_DNS}
-    service: https://traefik:443
+    service: https://traefik:80
   - hostname: ${CLOUDFLARED_GRAFANA}
-    service: https://traefik:443
+    service: https://traefik:80
   - service: http_status:404
 ```
 
@@ -151,22 +151,15 @@ sudo mkdir -p /etc/ssl/${CLOUDFLARED_CERTS_DOMAIN}
 sudo cp origin-cert.pem origin-key.pem /etc/ssl/${CLOUDFLARED_CERTS_DOMAIN}/
 ```
 
-Traefik mounts them as:
-
-    /certs/origin-cert.pem
-    /certs/origin-key.pem
-
 ------------------------------------------------------------------------
 
 ## 7. Service Overview
 
 ### Traefik
 
--   TLS termination\
--   Dashboard enabled\
--   Private bind: `127.0.0.1:80`, `127.0.0.1:443`\
+-   Dashboard enabled
+-   Private bind: `127.0.0.1:80`
 -   Receives traffic only from Cloudflared
--   **Traefik is currently broken**
 
 ### Cloudflared
 
