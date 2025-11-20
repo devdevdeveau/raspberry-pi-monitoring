@@ -415,3 +415,107 @@ Extend it easily with TailScale, Loki, Alertmanager, exporters, and
 more.
 
 Enjoy your fortress. 🛡️🔥
+
+------------------------------------------------------------------------
+
+# 13. Docker Registry & Insecure Registry Configuration (Optional)
+
+You can optionally run a private Docker registry (e.g. on your Pi) and point your Docker clients at it.
+Because this registry is served over **HTTP** (not HTTPS) on the home network, Docker must explicitly trust it as an **insecure registry**.
+
+The examples below assume your registry is reachable as `registry.home.arpa`.
+
+> ⚠️ Only do this on trusted networks. For anything exposed to the public internet, you should use TLS and proper authentication.
+
+## 13.1 Linux (Docker Engine)
+
+Edit `/etc/docker/daemon.json` (create the file if it does not exist):
+
+```json
+{
+  "insecure-registries": [
+    "registry.home.arpa"
+  ]
+}
+```
+
+Then restart Docker:
+
+```bash
+sudo systemctl restart docker
+```
+
+Verify:
+
+```bash
+docker info | grep -A3 'Insecure Registries'
+```
+
+You should see `registry.home.arpa` listed.
+
+## 13.2 macOS (Docker Desktop)
+
+1. Open **Docker Desktop**.
+2. Go to **Settings → Docker Engine**.
+3. Add or merge the following into the JSON:
+
+```json
+{
+  "insecure-registries": [
+    "registry.home.arpa"
+  ]
+}
+```
+
+4. Click **Apply & Restart**.
+
+To verify:
+
+```bash
+docker info
+```
+
+Look for the `Insecure Registries` section.
+
+## 13.3 Windows (Docker Desktop)
+
+1. Open **Docker Desktop**.
+2. Go to **Settings → Docker Engine**.
+3. Add or merge:
+
+```json
+{
+  "insecure-registries": [
+    "registry.home.arpa"
+  ]
+}
+```
+
+4. Click **Apply & Restart**.
+
+If you are using WSL2, this setting applies to the Linux backend automatically.
+
+Verify from PowerShell or a WSL shell:
+
+```powershell
+docker info
+```
+
+## 13.4 Quick Test
+
+After configuring Docker to trust the insecure registry, test with:
+
+```bash
+docker login registry.home.arpa
+```
+
+Then:
+
+```bash
+docker pull alpine:latest
+docker tag alpine:latest registry.home.arpa/alpine:test
+docker push registry.home.arpa/alpine:test
+docker pull registry.home.arpa/alpine:test
+```
+
+If these commands succeed, your Docker client is correctly configured for the home-lab registry.

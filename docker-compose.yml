@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     # Bind only to localhost; cloudflared (on the same Docker network) reaches Traefik via service name "traefik"
     ports:
-      - "127.0.0.1:80:80"
+      - "80:80"
     labels:
       - "traefik.enable=true"
     command:
@@ -128,6 +128,41 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`${CLOUDFLARED_GRAFANA}`)"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  registry:
+    image: registry:2
+    container_name: registry
+    restart: unless-stopped
+    expose:
+      - "5000"
+    networks: [mon]
+    volumes:
+      - ./registry-data:/var/lib/registry
+      - ./registry/config.yml:/etc/docker/registry/config.yml:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.registry-api.rule=Host(`registry.home.arpa`) && PathPrefix(`/v2`)"
+      - "traefik.http.routers.registry-api.entrypoints=web"
+      - "traefik.http.services.registry-api.loadbalancer.server.port=5000"
+
+  registry-ui:
+    image: joxit/docker-registry-ui:latest
+    container_name: registry-ui
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks: [mon] 
+    environment:
+      - REGISTRY_TITLE=devdevdeveau.net Registry
+      - REGISTRY_URL=http://registry:5000   # internal to the Docker network
+      - REGISTRY_URL=http://registry.home.arpa   # internal to the Docker network
+      - DELETE_IMAGES=true                  # optional, enable only if you want deletes
+    labels:
+      - "traefik.enable=true"
+      # Web UI (for your browser)
+      - "traefik.http.routers.registry-ui.rule=Host(`registry.home.arpa`)"
+      - "traefik.http.routers.registry-ui.entrypoints=web"
+      - "traefik.http.services.registry-ui.loadbalancer.server.port=80"
 
 networks:
   mon: {}

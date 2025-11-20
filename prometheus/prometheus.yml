@@ -24,3 +24,8 @@ scrape_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: docker-engine
+
+  - job_name: 'docker-registry'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['registry:5000']
