@@ -8,7 +8,9 @@ grafana-data/
 # Node exporter / Prometheus runtime data
 prometheus/data/
 __pycache__/
-etc-pihole/
+etc-pihole/*
+!etc-pihole/hosts/
+!etc-pihole/hosts/custom.list
 etc-dnsmasq.d/
 pi-hole-logs/
 registry-data/
