@@ -1,0 +1,29 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0   # disable gRPC server
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # 1) Logs from ALL Docker containers
+  - job_name: docker
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*.log
+    pipeline_stages:
+      - docker: {}
+
+  # 2) Pi-hole DNS logs from bind-mounted folder
+  - job_name: pihole
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: pihole
+          app: pihole
+          __path__: /mnt/pihole-logs/*.log

@@ -164,9 +164,35 @@ services:
       - "traefik.http.routers.registry-ui.entrypoints=web"
       - "traefik.http.services.registry-ui.loadbalancer.server.port=80"
 
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/var/lib/loki
+    networks: [mon]
+    labels:
+      - "traefik.enable=false"
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./pi-hole-logs:/mnt/pihole-logs:ro
+      - ./loki/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+    networks: [mon]
+    labels:
+      - "traefik.enable=false"
+
 networks:
   mon: {}
 
 volumes:
   prom-data:
   grafana-data:
+  loki-data: {}  
